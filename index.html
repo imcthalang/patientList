@@ -452,14 +452,13 @@ function getUD() {
   return checked.join(' - ');
 }
 
-// --- ฟังก์ชัน showForm (แก้ไข) ---
 function showForm(data = null) {
   document.getElementById("opdFormContainer").classList.remove("hidden");
   const formAction = document.getElementById("formAction");
   const formId = document.getElementById("formId");
 
   if (data) {
-    // กรณีแก้ไข
+    // ✅ กรณีแก้ไข
     formAction.value = "update";
     formId.value = data.ptId || "";
     document.getElementById("idField").value = data.ptId || "";
@@ -473,7 +472,7 @@ function showForm(data = null) {
     document.getElementById("medDx").value = data.medDx || "";
     document.getElementById("dxSelect").value = data.ptDx || "";
 
-    // อายุ
+    // ✅ อายุ
     if (data.age) {
       const ageMatch = data.age.match(/(\d+)ปี(\d+)เดือน/);
       if (ageMatch) {
@@ -482,24 +481,41 @@ function showForm(data = null) {
       }
     }
 
-    // รอบเอว
+    // ✅ รอบเอว
     if (data.waist) document.getElementById("waistInput").value = data.waist;
 
-    // วันนัด (checkbox หลายตัว)
-    if (data.day) {
-      const days = data.day.split(" - ");
-      document.querySelectorAll('input[name="day"]').forEach(cb => {
-        cb.checked = days.includes(cb.value);
-      });
+    // ✅ นักกายภาพบำบัด
+    if (data.pT) {
+      document.getElementById("ptSelect").value = data.pT;
     }
 
-    // เวลา
-    if (data.time) {
-      const timeInput = document.querySelector(`input[name="time"][value="${data.time}"]`);
-      if (timeInput) timeInput.checked = true;
+    // ✅ รอบนัด + วันนัด + เวลา
+    if (data.type) {
+      updateFormFields(); // render รอบนัดตามประเภท
+      if (data.round) {
+        const roundRadio = document.querySelector(`input[name="round"][value="${data.round}"]`);
+        if (roundRadio) {
+          roundRadio.checked = true;
+          setRound(data.round); // render วัน+เวลา
+        }
+      }
+
+      // หลังจาก setRound แล้ว → check วัน
+      if (data.day) {
+        const days = data.day.split(" - ");
+        document.querySelectorAll('input[name="day"]').forEach(cb => {
+          cb.checked = days.includes(cb.value);
+        });
+      }
+
+      // check เวลา
+      if (data.time) {
+        const timeInput = document.querySelector(`input[name="time"][value="${data.time}"]`);
+        if (timeInput) timeInput.checked = true;
+      }
     }
 
-    // โรคประจำตัว (checkbox + text)
+    // ✅ โรคประจำตัว (ud)
     if (data.ud) {
       const udItems = data.ud.split(" - ");
       document.querySelectorAll('.col-span-3 input[type="checkbox"]').forEach(cb => {
@@ -514,9 +530,8 @@ function showForm(data = null) {
       }
     }
 
-    // radio group (mapping name ให้ตรง)
+    // ✅ radio group (work, previousService, drugAllergy, smoking, alcohol, refDoctor)
     const radioMap = {
-      round: "round",
       work: "workRelated",
       month3: "previousService",
       drug: "drugAllergy",
@@ -531,7 +546,7 @@ function showForm(data = null) {
       }
     });
 
-    // แพทย์ผู้ส่ง
+    // ✅ แพทย์ผู้ส่ง
     if (data.doctor) {
       const radioDoctor = document.querySelector(`input[name="refDoctor"][value="${data.doctor}"]`);
       if (radioDoctor) {
@@ -548,6 +563,7 @@ function showForm(data = null) {
     document.getElementById("opdForm").reset();
   }
 }
+
 
 // --- กดแก้ไข ---
 async function editData(id) {
@@ -751,4 +767,5 @@ function getUD() {
  </script>
 </body>
 </html>
+
 
