@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบทะเบียนผู้ป่วยและตารางนัด - กายภาพบำบัด</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Sarabun', sans-serif; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-button.active { background-color: #3b82f6; color: white; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h1 class="text-3xl font-bold text-gray-800 text-center">ระบบทะเบียนผู้ป่วยและตารางนัด</h1>
+      <p class="text-gray-600 text-center mt-2">แผนกกายภาพบำบัด</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="bg-white rounded-lg shadow-lg mb-6">
+      <div class="flex flex-wrap border-b">
+        <button class="tab-button active px-6 py-3 font-medium text-sm rounded-tl-lg hover:bg-blue-50 transition-colors" onclick="showTab('outpatient')">ผู้ป่วยนอก</button>
+        <button class="tab-button px-6 py-3 font-medium text-sm hover:bg-blue-50 transition-colors" onclick="showTab('inpatient')">ผู้ป่วยใน</button>
+        <button class="tab-button px-6 py-3 font-medium text-sm hover:bg-blue-50 transition-colors" onclick="showTab('copd')">คลินิก COPD</button>
+        <button class="tab-button px-6 py-3 font-medium text-sm hover:bg-blue-50 transition-colors" onclick="showTab('dm')">คลินิก DM</button>
+        <button class="tab-button px-6 py-3 font-medium text-sm rounded-tr-lg hover:bg-blue-50 transition-colors" onclick="showTab('elderly')">คลินิกผู้สูงอายุ</button>
+      </div>
+
+      <!-- Outpatient Tab -->
+      <div id="outpatient" class="tab-content active p-6">
+<h2 class="text-2xl font-semibold text-gray-800 mb-6">รายชื่อผู้ป่วยนอก</h2>
+
+  <!-- ปุ่มเพิ่มข้อมูล -->
+  <button onclick="showForm()" 
+    class="mb-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg">
+    ➕ เพิ่มข้อมูล
+  </button>
+
+  <!-- ตารางรายชื่อ -->
+  <div class="overflow-x-auto mb-6">
+    <table class="min-w-full bg-white rounded-lg shadow">
+      <thead>
+        <tr class="bg-gray-200 text-gray-700">
+          <th class="px-4 py-2">ID</th>
+          <th class="px-4 py-2">HN</th>
+          <th class="px-4 py-2">ชื่อ-นามสกุล</th>
+          <th class="px-4 py-2">ประเภท</th>
+          <th class="px-4 py-2">เบอร์โทร</th>
+          <th class="px-4 py-2">การจัดการ</th>
+        </tr>
+      </thead>
+      <tbody id="opdTableBody"></tbody>
+    </table>
+  </div>
+
+       <!-- ฟอร์ม (ซ่อนตอนแรก) -->
+  <div id="opdFormContainer" class="hidden">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6">ลงทะเบียนผู้ป่วยนอก</h2>
+    <form id="opdForm" class="space-y-6">
+      <input type="hidden" id="formAction" name="action" value="add">
+      <input type="hidden" id="formId" name="id">
+
+          <!-- แถว 1: วันที่ลงทะเบียน + ประเภทผู้ป่วย + นักกายภาพ -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">วันที่ลงทะเบียน</label>
+              <input type="date" id="regDate" name="date" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทผู้ป่วย</label>
+              <select id="patientType" name="type" class="w-full px-3 py-2 border border-gray-300 rounded-md" onchange="updateFormFields()">
+                <option value="">เลือกประเภทผู้ป่วย</option>
+                <option value="Ortho">Ortho</option>
+                <option value="Neuro">Neuro</option>
+                <option value="Chest">Chest</option>
+                <option value="IMC">IMC</option>
+                <option value="Home & Education">Home & Education</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">นักกายภาพบำบัดผู้รักษา</label>
+              <select id="ptSelect" name="pT" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">เลือกนักกายภาพบำบัด</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- แถว 2: รอบนัด + วันที่นัด + เวลานัด -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">รอบนัดรักษา</label>
+              <div id="roundOptions" name="round" class="space-y-2"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">วันที่นัดรักษา</label>
+              <div id="dayOptions" name="day" class="grid grid-cols-3 gap-2"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">เวลาที่นัดรักษา</label>
+              <div id="timeOptions" name="time" class="grid grid-cols-2 gap-2"></div>
+            </div>
+          </div>
+
+<!-- แถว: ID + HN + ชื่อ -->
+<div class="grid grid-cols-4 gap-4">
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">ID</label>
+    <input type="text" id="idField" name="ptId" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">HN</label>
+    <input type="text" id="hnInput" name="hn" maxlength="7" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+  </div>
+  <div class="col-span-2">
+    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล</label>
+    <input type="text" id="ptName" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+  </div>
+</div>
+
+
+          <!-- แถว 4: อายุ + น้ำหนัก + ส่วนสูง + รอบเอว -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">อายุ</label>
+              <div class="flex space-x-2">
+                <input type="number" id="ageYear" placeholder="ปี" class="w-1/2 px-3 py-2 border border-gray-300 rounded-md">
+                <input type="number" id="ageMonth" placeholder="เดือน" class="w-1/2 px-3 py-2 border border-gray-300 rounded-md">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">น้ำหนัก (กก.)</label>
+              <input type="number" id="weight" name="weight" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">ส่วนสูง (ซม.)</label>
+              <input type="number" id="hight" name="hight" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">รอบเอว</label>
+              <div class="flex space-x-2">
+                <input type="number" id="waistInput" class="w-2/3 px-3 py-2 border border-gray-300 rounded-md">
+                <select id="waistUnit" class="w-1/3 px-2 py-2 border border-gray-300 rounded-md">
+                  <option value="cm">ซม.</option>
+                  <option value="inch">นิ้ว</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+    <!-- แถว 5: เบอร์โทรศัพท์ + สิทธิการรักษา + โรคประจำตัว -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+  <!-- ส่วนที่ 1: เบอร์โทรศัพท์ -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">เบอร์โทรศัพท์</label>
+    <input type="text" id="phone" name="phone" pattern="[0-9]{10}" maxlength="10"
+      class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+    <p id="phoneError" class="text-red-500 text-sm hidden">กรุณากรอกเบอร์โทรศัพท์ 10 หลัก</p>
+  </div>
+
+  <!-- ส่วนที่ 2: สิทธิการรักษา -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">สิทธิการรักษา</label>
+    <select id="mwSelect" name="mw" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+      <option value="">เลือกสิทธิการรักษา</option>
+    </select>
+  </div>
+
+  <!-- ส่วนที่ 3-5: โรคประจำตัว -->
+  <div class="col-span-3">
+    <label class="block text-sm font-medium text-gray-700 mb-2">โรคประจำตัว</label>
+    <div class="flex flex-wrap gap-4">
+      <label><input type="checkbox" class="mr-2"> ปฏิเสธโรคประจำตัว</label>
+      <label><input type="checkbox" class="mr-2"> HT</label>
+      <label><input type="checkbox" class="mr-2"> DM</label>
+      <label><input type="checkbox" class="mr-2"> DLP</label>
+      <label><input type="checkbox" class="mr-2"> CKD</label>
+      <label><input type="checkbox" class="mr-2"> Heart disease</label>
+      <label><input type="checkbox" class="mr-2"> CVA</label>
+      <input type="text" placeholder="อื่นๆ (ระบุ)"
+        class="px-3 py-2 border border-gray-300 rounded-md">
+    </div>
+  </div>
+</div>
+
+<!-- แถว 7-8 รวมกัน: บาดเจ็บจากงาน + เคยกายภาพ + แพ้ยา + สูบบุหรี่ + ดื่ม -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+  <!-- ส่วนที่ 1: อาการนี้เกิดจากการทำงาน -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">อาการนี้เกิดจากการทำงาน?</label>
+    <label class="mr-4"><input type="radio" name="workRelated" value="ใช่"> ใช่</label>
+    <label><input type="radio" name="workRelated" value="ไม่ใช่"> ไม่ใช่</label>
+  </div>
+
+  <!-- ส่วนที่ 2: เคยกายภาพ -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">3 เดือนที่ผ่านมาเคยกายภาพอาการนี้?</label>
+    <label class="mr-4"><input type="radio" name="previousService" value="ใช่"> ใช่</label>
+    <label><input type="radio" name="previousService" value="ไม่ใช่"> ไม่ใช่</label>
+  </div>
+
+  <!-- ส่วนที่ 3: แพ้ยา -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">แพ้ยา</label>
+    <label class="mr-4"><input type="radio" name="drugAllergy" value="ปฏิเสธ"> ปฏิเสธ</label>
+    <label><input type="radio" name="drugAllergy" value="มี"> มี</label>
+  </div>
+
+  <!-- ส่วนที่ 4: สูบบุหรี่ -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">ประวัติสูบบุหรี่</label>
+    <label class="mr-4"><input type="radio" name="smoking" value="ไม่เคย"> ไม่เคย</label>
+    <label class="mr-4"><input type="radio" name="smoking" value="เลิกแล้ว"> เลิกแล้ว</label>
+    <label><input type="radio" name="smoking" value="สูบ"> สูบ</label>
+  </div>
+
+  <!-- ส่วนที่ 5: ดื่ม -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">ประวัติดื่มแอลกอฮอล์</label>
+    <label class="mr-4"><input type="radio" name="alcohol" value="ไม่เคย"> ไม่เคย</label>
+    <label class="mr-4"><input type="radio" name="alcohol" value="เลิกแล้ว"> เลิกแล้ว</label>
+    <label><input type="radio" name="alcohol" value="ดื่ม"> ดื่ม</label>
+  </div>
+</div>
+
+        <!-- แถว 9: แพทย์ + Dx -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <!-- กรอกชื่อแพทย์ผู้ส่ง -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">กรอกชื่อแพทย์ผู้ส่ง</label>
+    <input type="text" id="doctorName" placeholder="ชื่อแพทย์"
+      class="w-full px-3 py-2 border border-gray-300 rounded-md">
+    <div class="mt-2">
+      <label><input type="radio" name="refDoctor" value="แพทย์ภายนอก"> แพทย์ภายนอก</label>
+    </div>
+  </div>
+
+  <!-- การวินิจฉัยทางการแพทย์ -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">การวินิจฉัยทางการแพทย์</label>
+    <textarea id="medDx" name="medDx" class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="2"></textarea>
+  </div>
+
+  <!-- การวินิจฉัยกายภาพ -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-2">การวินิจฉัยกายภาพ</label>
+    <select id="dxSelect" name="ptDx" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+      <option value="">เลือกการวินิจฉัย</option>
+    </select>
+  </div>
+</div>
+
+          <div class="col-span-full">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg">บันทึกข้อมูลผู้ป่วยนอก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+            <!-- Inpatient Tab -->
+            <div id="inpatient" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">ลงทะเบียนผู้ป่วยใน</h2>
+                <form class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">วันที่ลงทะเบียน</label>
+                        <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทผู้ป่วย</label>
+                        <input type="text" value="ผู้ป่วยใน" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">AN</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">HN</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ สกุล</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">อายุ</label>
+                        <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">สิทธิการรักษา</label>
+                        <select id="mwSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">เลือกสิทธิการรักษา</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">หอผู้ป่วย</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">เลือกหอผู้ป่วย</option>
+                            <option value="หอผู้ป่วยชาย">หอผู้ป่วยชาย</option>
+                            <option value="หอผู้ป่วยหญิง">หอผู้ป่วยหญิง</option>
+                            <option value="หอผู้ป่วยชั้น 4">หอผู้ป่วยชั้น 4</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">นักกายภาพบำบัดผู้รักษา</label>
+                        <select id="ptSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">เลือกนักกายภาพบำบัด</option>
+                        </select>
+                    </div>
+                    <div class="col-span-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">การวินิจฉัยทางการแพทย์</label>
+                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                    </div>
+                    <div class="col-span-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">การวินิจฉัยทางกายภาพบำบัด</label>
+                        <select id="dxSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">เลือกการวินิจฉัยทางกายภาพบำบัด</option>
+                        </select>
+                    </div>
+                    <div class="col-span-full">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-8 rounded-lg transition-colors">
+                            บันทึกข้อมูลผู้ป่วยใน
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- COPD Clinic Tab -->
+            <div id="copd" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">คลินิก COPD</h2>
+                <form class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">วันที่ลงทะเบียน</label>
+                        <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">HN</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ สกุล</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">อายุ</label>
+                        <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">สิทธิการรักษา</label>
+                        <select id="mwSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">เลือกสิทธิการรักษา</option>
+				</select>
+                          </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ระดับความเหนื่อย (1-10)</label>
+                        <input type="number" min="1" max="10" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ระยะทางที่ทำได้ (เมตร)</label>
+                        <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="col-span-full">
+                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-8 rounded-lg transition-colors">
+                            บันทึกข้อมูลคลินิก COPD
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- DM Clinic Tab -->
+            <div id="dm" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">คลินิก DM</h2>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <p class="text-yellow-800">คลินิก DM อยู่ระหว่างการพัฒนา</p>
+                    <p class="text-sm text-yellow-600 mt-1">กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มฟิลด์ที่จำเป็น</p>
+                </div>
+            </div>
+
+            <!-- Elderly Clinic Tab -->
+            <div id="elderly" class="tab-content p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6">คลินิกผู้สูงอายุ</h2>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <p class="text-yellow-800">คลินิกผู้สูงอายุ อยู่ระหว่างการพัฒนา</p>
+                    <p class="text-sm text-yellow-600 mt-1">กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มฟิลด์ที่จำเป็น</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+  <!-- Scripts -->
+  <script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwD10wC2tYDuYtOz32TS2Qg4cfwDdaJ3pu_YtnrLgR_a_V1cVkZqytFCNACoREWQ6QgLQ/exec";
+
+// โหลดตาราง
+function loadOPDTable() {
+  fetch(API_URL + "?action=read")
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById("opdTableBody");
+      tbody.innerHTML = "";
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">ไม่มีข้อมูล</td></tr>`;
+        return;
+      }
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="border px-4 py-2">${row.ptId || ""}</td>
+          <td class="border px-4 py-2">${row.hn || ""}</td>
+          <td class="border px-4 py-2">${row.name || ""}</td>
+          <td class="border px-4 py-2">${row.type || ""}</td>
+          <td class="border px-4 py-2">${row.phone || ""}</td>
+          <td class="border px-4 py-2">
+            <button class="bg-yellow-500 text-white px-2 py-1 rounded" onclick="editData('${row.ptId}')">✏️</button>
+            <button class="bg-red-600 text-white px-2 py-1 rounded" onclick="deleteData('${row.ptId}')">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error("โหลดตารางล้มเหลว:", err);
+      alert("โหลดตารางไม่สำเร็จ");
+    });
+}
+document.addEventListener("DOMContentLoaded", loadOPDTable);
+
+// --- Helper functions ---
+function getDays() {
+  return Array.from(document.querySelectorAll('input[name="day"]:checked'))
+              .map(cb => cb.value).join(" - ");
+}
+
+function getUD() {
+  const container = document.querySelector('.col-span-3 .flex');
+  const checked = [];
+
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.checked) checked.push(cb.nextSibling.textContent.trim());
+  });
+
+  const otherInput = container.querySelector('input[type="text"]');
+  if (otherInput && otherInput.value.trim() !== '') {
+    checked.push(otherInput.value.trim());
+  }
+  return checked.join(' - ');
+}
+
+// --- ฟังก์ชัน showForm (แก้ไข) ---
+function showForm(data = null) {
+  document.getElementById("opdFormContainer").classList.remove("hidden");
+  const formAction = document.getElementById("formAction");
+  const formId = document.getElementById("formId");
+
+  if (data) {
+    // กรณีแก้ไข
+    formAction.value = "update";
+    formId.value = data.ptId || "";
+    document.getElementById("idField").value = data.ptId || "";
+    document.getElementById("hnInput").value = data.hn || "";
+    document.getElementById("ptName").value = data.name || "";
+    document.getElementById("patientType").value = data.type || "";
+    document.getElementById("phone").value = data.phone || "";
+    document.getElementById("weight").value = data.weight || "";
+    document.getElementById("hight").value = data.hight || "";
+    document.getElementById("mwSelect").value = data.mw || "";
+    document.getElementById("medDx").value = data.medDx || "";
+    document.getElementById("dxSelect").value = data.ptDx || "";
+
+    // อายุ
+    if (data.age) {
+      const ageMatch = data.age.match(/(\d+)ปี(\d+)เดือน/);
+      if (ageMatch) {
+        document.getElementById("ageYear").value = ageMatch[1];
+        document.getElementById("ageMonth").value = ageMatch[2];
+      }
+    }
+
+    // รอบเอว
+    if (data.waist) document.getElementById("waistInput").value = data.waist;
+
+    // วันนัด (checkbox หลายตัว)
+    if (data.day) {
+      const days = data.day.split(" - ");
+      document.querySelectorAll('input[name="day"]').forEach(cb => {
+        cb.checked = days.includes(cb.value);
+      });
+    }
+
+    // เวลา
+    if (data.time) {
+      const timeInput = document.querySelector(`input[name="time"][value="${data.time}"]`);
+      if (timeInput) timeInput.checked = true;
+    }
+
+    // โรคประจำตัว (checkbox + text)
+    if (data.ud) {
+      const udItems = data.ud.split(" - ");
+      document.querySelectorAll('.col-span-3 input[type="checkbox"]').forEach(cb => {
+        cb.checked = udItems.includes(cb.nextSibling.textContent.trim());
+      });
+      const extra = udItems.find(v => {
+        return !Array.from(document.querySelectorAll('.col-span-3 input[type="checkbox"]'))
+                     .some(cb => cb.nextSibling.textContent.trim() === v);
+      });
+      if (extra) {
+        document.querySelector('.col-span-3 input[type="text"]').value = extra;
+      }
+    }
+
+    // radio group (mapping name ให้ตรง)
+    const radioMap = {
+      round: "round",
+      work: "workRelated",
+      month3: "previousService",
+      drug: "drugAllergy",
+      smoke: "smoking",
+      alcohal: "alcohol",
+      refDoctor: "refDoctor"
+    };
+    Object.keys(radioMap).forEach(field => {
+      if (data[field]) {
+        const radio = document.querySelector(`input[name="${radioMap[field]}"][value="${data[field]}"]`);
+        if (radio) radio.checked = true;
+      }
+    });
+
+    // แพทย์ผู้ส่ง
+    if (data.doctor) {
+      const radioDoctor = document.querySelector(`input[name="refDoctor"][value="${data.doctor}"]`);
+      if (radioDoctor) {
+        radioDoctor.checked = true;
+      } else {
+        document.getElementById("doctorName").value = data.doctor;
+      }
+    }
+
+  } else {
+    // กรณีเพิ่ม
+    formAction.value = "add";
+    formId.value = "";
+    document.getElementById("opdForm").reset();
+  }
+}
+
+// --- กดแก้ไข ---
+async function editData(id) {
+  try {
+    const res = await fetch(API_URL + `?action=get&id=${id}`);
+    const data = await res.json();
+    if (data.status === "error") {
+      alert(data.message);
+      return;
+    }
+    showForm(data); // ✅ ส่งข้อมูลไปกรอกในฟอร์ม
+  } catch (err) {
+    console.error("โหลดข้อมูลแก้ไขล้มเหลว:", err);
+    alert("ไม่สามารถโหลดข้อมูลเดิมได้");
+  }
+}
+
+// --- ฟอร์ม submit ---
+document.getElementById("opdForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+
+  // ✅ เพิ่มค่า checkbox และ radio ที่รวมแล้ว
+  formData.set("day", getDays());
+  formData.set("ud", getUD());
+
+  try {
+    const res = await fetch(API_URL, { method: "POST", body: formData });
+    const result = await res.json();
+    if (result.status === "success") {
+      alert("บันทึกสำเร็จ");
+      this.reset();
+      document.getElementById("opdFormContainer").classList.add("hidden");
+      loadOPDTable();
+    } else {
+      alert("เกิดข้อผิดพลาด: " + result.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("บันทึกไม่สำเร็จ");
+  }
+});
+
+
+// กดลบ
+function deleteData(id) {
+  if (confirm("ยืนยันการลบข้อมูลนี้?")) {
+    fetch(API_URL + `?action=delete&id=${id}`)
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === "success") {
+          alert("ลบสำเร็จ");
+          loadOPDTable();
+        } else {
+          alert("เกิดข้อผิดพลาด: " + res.message);
+        }
+      });
+  }
+}
+    // โหลดตัวเลือกจาก Google Apps Script
+    document.addEventListener("DOMContentLoaded", () => {
+      const url = "https://script.google.com/macros/s/AKfycby-00vDlcr6KJrlWx5nJ2CUSCNCsZqfLRDODsbUw8PChJgZN6wTzhcXyj41bjF17u4Z/exec";
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          fillSelect("ptSelect", data.pt);
+          fillSelect("mwSelect", data.mw);
+          fillSelect("dxSelect", data.dx);
+        })
+        .catch(err => console.error("โหลดข้อมูลไม่สำเร็จ:", err));
+    });
+    function fillSelect(selectId, items) {
+      const select = document.getElementById(selectId);
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item;
+        opt.textContent = item;
+        select.appendChild(opt);
+      });
+    }
+
+    // --- แท็บ ---
+    function showTab(tabName, event) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      if(event) event.currentTarget.classList.add('active');
+    }
+
+    // รอบนัด + PT เงื่อนไข
+    function updateFormFields() {
+      const type = document.getElementById('patientType').value;
+      const roundContainer = document.getElementById('roundOptions');
+      const ptSelect = document.getElementById('ptSelect');
+      roundContainer.innerHTML = "";
+      let rounds = [];
+      if (type === 'Ortho') {
+        rounds = ['ในเวลาราชการ', 'นอกเวลาราชการ'];
+      } else if (type === 'Neuro' || type === 'IMC' || type === 'Chest') {
+        rounds = ['ในเวลาราชการ'];
+      }
+      rounds.forEach(r => {
+        const opt = document.createElement('label');
+        opt.innerHTML = `<input type="radio" name="round" value="${r}" onchange="setRound('${r}')"> ${r}`;
+        roundContainer.appendChild(opt);
+      });
+      if (type === 'Neuro' || type === 'IMC') {
+        ptSelect.innerHTML = '<option value="">เลือกนักกายภาพบำบัด</option>';
+      }
+    }
+    function setRound(round) {
+      const type = document.getElementById('patientType').value;
+      const dayContainer = document.getElementById('dayOptions');
+      const timeContainer = document.getElementById('timeOptions');
+      const ptSelect = document.getElementById('ptSelect');
+      dayContainer.innerHTML = "";
+      timeContainer.innerHTML = "";
+      let days = [], times = [];
+      if (type === 'Ortho' && round === 'ในเวลาราชการ') {
+        days = ['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+        times = ['9:00','9:30','10:00','10:30','11:00','13:00','13:30','14:00','14:30','15:00'];
+      } else if (type === 'Ortho' && round === 'นอกเวลาราชการ') {
+        days = ['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์'];
+        times = ['16:30','17:00','17:30','18:00','18:30','19:00'];
+        ptSelect.innerHTML = '<option value="- ALL -">- ALL -</option>';
+      } else if ((type === 'Neuro' || type === 'IMC' || type === 'Chest') && round === 'ในเวลาราชการ') {
+        days = ['จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์'];
+        times = ['10:00','10:30','11:00','14:00','15:00'];
+      }
+      days.forEach(d => {
+        const opt = document.createElement('label');
+        opt.innerHTML = `<input type="checkbox" name="day" value="${d}"> ${d}`;
+        dayContainer.appendChild(opt);
+      });
+      times.forEach(t => {
+        const opt = document.createElement('label');
+        opt.innerHTML = `<input type="radio" name="time" value="${t}"> ${t}`;
+        timeContainer.appendChild(opt);
+      });
+    }
+
+    // ID สร้างจาก HN + วันที่ (พ.ศ.)
+    function generateID() {
+      const hnInput = document.getElementById('hnInput');
+      const idField = document.getElementById('idField');
+      hnInput.addEventListener('input', () => {
+        let hn = hnInput.value.trim();
+        if (/^\d+$/.test(hn) && hn.length > 0) {
+          hn = hn.padStart(7, '0');
+          const now = new Date();
+          const buddhistYear = now.getFullYear() + 543;
+          const year = String(buddhistYear).slice(-2);
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          idField.value = `${year}${month}${day}OP${hn}`;
+        } else { idField.value = ''; }
+      });
+    }
+    document.addEventListener('DOMContentLoaded', generateID);
+
+    // Toggle แพทย์ผู้ส่ง
+    function toggleDoctorInput() {
+      const internal = document.querySelector('input[name="refDoctor"][value="internal"]');
+      const doctorInput = document.getElementById('doctorName');
+      doctorInput.disabled = !internal.checked;
+    }
+
+    // ตรวจสอบเบอร์โทรศัพท์
+    document.getElementById('phone').addEventListener('input', function() {
+      const phoneError = document.getElementById('phoneError');
+      if (/^\d{10}$/.test(this.value)) {
+        phoneError.classList.add('hidden');
+      } else {
+        phoneError.classList.remove('hidden');
+      }
+    });
+    // Set today's date as default
+            const dateInputs = document.querySelectorAll('input[type="date"]');
+            const today = new Date().toISOString().split('T')[0];
+            dateInputs.forEach(input => {
+                input.value = today;
+            });
+function getUD() {
+  const container = document.querySelector('.col-span-3 .flex');
+  const checked = [];
+  
+  // เก็บ checkbox ที่ถูกเลือก
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    if (cb.checked) checked.push(cb.nextSibling.textContent.trim());
+  });
+  
+  // เก็บค่า text input ถ้ามี
+  const otherInput = container.querySelector('input[type="text"]');
+  if (otherInput && otherInput.value.trim() !== '') {
+    checked.push(otherInput.value.trim());
+  }
+  
+  return checked.join(' - '); // ส่งเป็น string ต่อกันด้วย " - "
+}
+
+ </script>
+</body>
+</html>
+
